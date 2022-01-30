@@ -10,19 +10,75 @@ app.use(cors());
 const users = [];
 
 function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers;
+
+  const findUser = users.find(user => user.username = username);
+
+  if(!findUser) {
+    return response.status(404).json({ message: "User not found"})
+  }
+
+  request.user = findUser;
+
+  return next();
 }
 
 function checksCreateTodosUserAvailability(request, response, next) {
-  // Complete aqui
+  const { user } = request;
+
+  const countTodo = user.todos.length;
+
+  if ( user.pro === false && countTodo < 10 ) {
+    return next();
+  }
+
+  if ( user.pro === true ) {
+    return next();
+  }
+
+  return response.status(403).json({ message: 'outdated free plan' });
 }
 
 function checksTodoExists(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers;
+  const { id } = request.params;
+
+  const user = users.find(user => user.username === username);
+
+  if (!user) {
+    return response.status(404).json({ error: 'Username already exists' });
+  }
+    
+  const isValidated = validate(id);
+
+  if (isValidated === false) {
+    return response.status(400).json({ message: 'this id not is uuid type' });
+  }
+
+  const checkTodoIsValid = user.todos.find(todo => todo.id === id);
+
+  if (!checkTodoIsValid) {
+    return response.status(404).json({ message: 'todo not already exists' })
+  }
+
+  request.user = user;
+  request.todo = checkTodoIsValid;
+
+  return next();
 }
 
 function findUserById(request, response, next) {
-  // Complete aqui
+  const { id } = request.params;
+
+  const findUser = users.find(user => user.id === id);
+
+  if (!findUser) {
+    return response.status(404).json({ error: 'Username already exists' });
+  }
+
+  request.user = findUser;
+
+  return next();
 }
 
 app.post('/users', (request, response) => {
@@ -72,7 +128,7 @@ app.get('/todos', checksExistsUserAccount, (request, response) => {
 });
 
 app.post('/todos', checksExistsUserAccount, checksCreateTodosUserAvailability, (request, response) => {
-  const { title, deadline } = request.body;
+  const { title, deadline } = request.body; 
   const { user } = request;
 
   const newTodo = {
